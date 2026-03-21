@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Core palette - clean, minimal, Middle Eastern warmth */
+  --color-primary: #0A0A0A;
+  --color-secondary: #F5F5F5;
+  --color-accent: #D4A574;
+  --color-text: #333333;
+  --color-muted: #888888;
+}
+
+body {
+  font-family: var(--font-inter), var(--font-arabic), system-ui, sans-serif;
+  background-color: #FFFFFF;
+  color: var(--color-text);
+}
+
+/* RTL support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* Clean typography */
+h1, h2, h3, h4 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Minimal button */
+.btn-primary {
+  @apply bg-[#0A0A0A] text-white px-6 py-3 rounded-lg font-medium 
+         hover:bg-[#1a1a1a] transition-all duration-200
+         active:scale-[0.98];
+}
+
+.btn-secondary {
+  @apply border border-[#0A0A0A] text-[#0A0A0A] px-6 py-3 rounded-lg font-medium
+         hover:bg-[#0A0A0A] hover:text-white transition-all duration-200;
+}
+
+.btn-accent {
+  @apply bg-[#D4A574] text-white px-6 py-3 rounded-lg font-medium
+         hover:bg-[#c49666] transition-all duration-200;
+}
+
+/* Card */
+.card {
+  @apply bg-white border border-gray-100 rounded-2xl p-6 shadow-sm
+         hover:shadow-md transition-shadow duration-200;
+}
+
+/* Section spacing */
+.section {
+  @apply py-16 md:py-24;
+}
+
+/* Container */
+.container-narrow {
+  @apply max-w-4xl mx-auto px-6;
+}
+
+.container-wide {
+  @apply max-w-7xl mx-auto px-6;
+}

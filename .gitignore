@@ -1,0 +1,29 @@
+# Ignore dependencies
+node_modules/
+
+# Ignore build output
+.next/
+out/
+
+# Ignore database
+data/
+
+# Ignore env files
+.env
+.env.local
+
+# Ignore IDE
+.idea/
+.vscode/
+*.swp
+
+# Ignore OS
+.DS_Store
+Thumbs.db
+
+# Ignore logs
+*.log
+npm-debug.log*
+
+# Drizzle
+drizzle/
