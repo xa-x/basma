@@ -1,20 +1,29 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
+@theme {
   /* Core palette - clean, minimal, Middle Eastern warmth */
   --color-primary: #0A0A0A;
   --color-secondary: #F5F5F5;
   --color-accent: #D4A574;
-  --color-text: #333333;
   --color-muted: #888888;
+  --color-border: #E5E5E5;
+  
+  /* Fonts */
+  --font-sans: var(--font-inter), var(--font-arabic), system-ui, sans-serif;
+  
+  /* Radii */
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
 }
 
+/* Base styles */
 body {
-  font-family: var(--font-inter), var(--font-arabic), system-ui, sans-serif;
+  font-family: var(--font-sans);
   background-color: #FFFFFF;
-  color: var(--color-text);
+  color: #333333;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* RTL support */
@@ -28,39 +37,176 @@ h1, h2, h3, h4 {
   letter-spacing: -0.02em;
 }
 
-/* Minimal button */
+/* Button variants */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  outline: none;
+  border: none;
+}
+
+.btn:focus-visible {
+  ring: 2px;
+  ring-color: var(--color-accent);
+  ring-offset: 2px;
+}
+
 .btn-primary {
-  @apply bg-[#0A0A0A] text-white px-6 py-3 rounded-lg font-medium 
-         hover:bg-[#1a1a1a] transition-all duration-200
-         active:scale-[0.98];
+  background-color: var(--color-primary);
+  color: white;
+  padding: 0.75rem 1.5rem;
+}
+
+.btn-primary:hover {
+  background-color: #1a1a1a;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
 }
 
 .btn-secondary {
-  @apply border border-[#0A0A0A] text-[#0A0A0A] px-6 py-3 rounded-lg font-medium
-         hover:bg-[#0A0A0A] hover:text-white transition-all duration-200;
+  background-color: transparent;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  padding: 0.75rem 1.5rem;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-primary);
+  color: white;
 }
 
 .btn-accent {
-  @apply bg-[#D4A574] text-white px-6 py-3 rounded-lg font-medium
-         hover:bg-[#c49666] transition-all duration-200;
+  background-color: var(--color-accent);
+  color: white;
+  padding: 0.75rem 1.5rem;
+}
+
+.btn-accent:hover {
+  background-color: #c49666;
 }
 
 /* Card */
 .card {
-  @apply bg-white border border-gray-100 rounded-2xl p-6 shadow-sm
-         hover:shadow-md transition-shadow duration-200;
+  background-color: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Input */
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+}
+
+.input::placeholder {
+  color: var(--color-muted);
+}
+
+/* Textarea */
+.textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  outline: none;
+  resize: none;
+}
+
+.textarea:focus {
+  border-color: var(--color-primary);
+}
+
+.textarea::placeholder {
+  color: var(--color-muted);
 }
 
 /* Section spacing */
 .section {
-  @apply py-16 md:py-24;
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+@media (min-width: 768px) {
+  .section {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
 }
 
 /* Container */
 .container-narrow {
-  @apply max-w-4xl mx-auto px-6;
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
 }
 
 .container-wide {
-  @apply max-w-7xl mx-auto px-6;
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #666;
 }

@@ -1,23 +1,17 @@
 // Simple JSON-based storage for MVP
-// Can be replaced with SQLite later
+// Can migrate to SQLite when better-sqlite3 supports Node 25
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
 const DATA_DIR = join(process.cwd(), "data");
-const PROJECTS_FILE = join(DATA_DIR, "projects.json");
+const DB_FILE = join(DATA_DIR, "db.json");
 
-// Ensure data directory exists
-if (!existsSync(DATA_DIR)) {
-  mkdirSync(DATA_DIR, { recursive: true });
+interface DB {
+  projects: Project[];
 }
 
-// Initialize projects file if it doesn't exist
-if (!existsSync(PROJECTS_FILE)) {
-  writeFileSync(PROJECTS_FILE, JSON.stringify([], null, 2));
-}
-
-export interface Project {
+interface Project {
   id: string;
   name: string;
   nameAr: string | null;
@@ -36,11 +30,11 @@ export interface Project {
   accentColor: string | null;
   selectedPackaging: string[];
   status: string;
-  createdAt: number;
-  updatedAt: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface ColorPalette {
+interface ColorPalette {
   primary: string;
   secondary: string;
   accent: string;
@@ -48,69 +42,81 @@ export interface ColorPalette {
   background: string;
 }
 
-function readProjects(): Project[] {
+// Ensure data directory and DB file exist
+if (!existsSync(DATA_DIR)) {
+  mkdirSync(DATA_DIR, { recursive: true });
+}
+
+if (!existsSync(DB_FILE)) {
+  writeFileSync(DB_FILE, JSON.stringify({ projects: [] }, null, 2));
+}
+
+function readDB(): DB {
   try {
-    const data = readFileSync(PROJECTS_FILE, "utf-8");
+    const data = readFileSync(DB_FILE, "utf-8");
     return JSON.parse(data);
   } catch {
-    return [];
+    return { projects: [] };
   }
 }
 
-function writeProjects(projects: Project[]): void {
-  writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2));
+function writeDB(db: DB): void {
+  writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
+// Database operations
 export const db = {
   projects: {
     findMany: async (): Promise<Project[]> => {
-      return readProjects();
+      return readDB().projects;
     },
 
     findUnique: async (id: string): Promise<Project | null> => {
-      const projects = readProjects();
-      return projects.find((p) => p.id === id) || null;
+      const db = readDB();
+      return db.projects.find((p) => p.id === id) || null;
     },
 
     create: async (data: Omit<Project, "id" | "createdAt" | "updatedAt">): Promise<Project> => {
-      const projects = readProjects();
-      const now = Math.floor(Date.now() / 1000);
+      const db = readDB();
+      const now = new Date().toISOString();
       const project: Project = {
         id: generateId(),
         ...data,
         createdAt: now,
         updatedAt: now,
       };
-      projects.push(project);
-      writeProjects(projects);
+      db.projects.push(project);
+      writeDB(db);
       return project;
     },
 
     update: async (id: string, data: Partial<Project>): Promise<Project | null> => {
-      const projects = readProjects();
-      const index = projects.findIndex((p) => p.id === id);
+      const db = readDB();
+      const index = db.projects.findIndex((p) => p.id === id);
       if (index === -1) return null;
-      
-      projects[index] = {
-        ...projects[index],
+
+      db.projects[index] = {
+        ...db.projects[index],
         ...data,
-        updatedAt: Math.floor(Date.now() / 1000),
+        updatedAt: new Date().toISOString(),
       };
-      writeProjects(projects);
-      return projects[index];
+      writeDB(db);
+      return db.projects[index];
     },
 
     delete: async (id: string): Promise<boolean> => {
-      const projects = readProjects();
-      const index = projects.findIndex((p) => p.id === id);
+      const db = readDB();
+      const index = db.projects.findIndex((p) => p.id === id);
       if (index === -1) return false;
-      
-      projects.splice(index, 1);
-      writeProjects(projects);
+
+      db.projects.splice(index, 1);
+      writeDB(db);
       return true;
     },
   },
 };
+
+export type { Project, ColorPalette };
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 12);

@@ -1,5 +1,3 @@
-// Color extraction utilities
-
 export interface ColorPalette {
   primary: string;
   secondary: string;
@@ -23,10 +21,8 @@ export function rgbToHex(r: number, g: number, b: number): string {
   return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 
-// Simple color palette extraction (placeholder for actual implementation)
 export async function extractColors(imageUrl: string): Promise<ColorPalette> {
-  // TODO: Implement actual color extraction using colorthief or similar
-  // For now, return a default palette
+  // TODO: Implement actual color extraction
   return {
     primary: "#D4A574",
     secondary: "#0A0A0A",
