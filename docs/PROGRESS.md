@@ -1,108 +1,168 @@
-# Phase 1 Complete ✅
+# Progress — بصمة (Basma)
 
-## What's Built
+## Phase 1: Foundation ✅ COMPLETE
 
-### 1. Landing Page
-- Minimal, white-space design
-- Arabic-first RTL layout
-- 3 colors: Black (#0A0A0A), Off-white (#F5F5F5), Gold (#D4A574)
-- Hero section with CTA
-- How it works (4 steps)
-- Explore section with examples
-- Footer
+**Status:** Done
+**Duration:** Day 1
+**Commit:** `9be60af`
 
-### 2. Project Creation Flow
-- **Step 1:** Sector selection (8 categories with Arabic labels)
-- **Step 2:** Business name (Arabic + English)
-- **Step 3:** Description
-- **Step 4:** Image upload (optional, for AI inspiration)
+### Completed
 
-### 3. Project Dashboard
-- Sidebar navigation (Overview, Logo, Design, Packaging, Download)
-- Edit at any step (non-linear flow)
-- Logo generation UI (4 AI models)
-- Color palette preview
-- Packaging selection
-- Download center
+- ✅ Next.js 15.2.4 + React 19 setup
+- ✅ Tailwind CSS v4 migration
+- ✅ Vercel AI SDK integration
+- ✅ shadcn-style UI components:
+  - Button (5 variants)
+  - Input
+  - Textarea
+  - Card
+- ✅ Landing page (minimal, RTL, Arabic-first)
+- ✅ Project creation flow (4 steps)
+- ✅ Project dashboard with sidebar
+- ✅ Logo generation UI
+- ✅ JSON-based storage
+- ✅ API routes (CRUD)
+- ✅ Git repo: `github.com/xa-x/basma`
 
-### 4. Database
-- SQLite + Drizzle ORM
-- Tables: projects, packaging_templates, mockups
-- Schema ready for colors, fonts, images, status
+### Design
 
-### 5. API Routes
-- GET/POST /api/projects
-- GET/PATCH/DELETE /api/projects/[id]
+- **Colors:** Black (#0A0A0A), Off-white (#F5F5F5), Gold (#D4A574)
+- **Font:** Inter + Noto Sans Arabic
+- **Direction:** RTL by default
+- **Style:** Minimal, white space, premium
 
 ---
 
-## Next Steps
+## Phase 2: AI Vision (Days 2-3)
 
-### Phase 2: AI Vision (Days 2-3)
-- [ ] Image analysis endpoint
-- [ ] Color extraction from uploaded images
-- [ ] LLM integration for follow-up questions
+**Status:** Ready to start
+**Goal:** Image analysis + LLM integration
+
+### Tasks
+
+- [ ] Image upload to storage
+- [ ] Color extraction from images
+- [ ] LLM follow-up questions
 - [ ] Brand vibe generation
+- [ ] AI insights display
 
-### Phase 3: Logo Generation (Days 3-4)
-- [ ] Integrate Qwen-VL for Arabic text
-- [ ] DALL-E 3 integration
-- [ ] Stable Diffusion integration
-- [ ] Flux integration
-- [ ] Layered image editing
+### Implementation
 
-### Phase 4: 3D Mockups (Days 4-5)
+```typescript
+// lib/ai.ts already has:
+- analyzeBrandImages()
+- generateLogoPrompt()
+- generateFollowUpQuestions()
+```
+
+Needs:
+- OpenAI API key
+- Image storage (local or cloud)
+- UI for Q&A flow
+
+---
+
+## Phase 3: Logo Generation (Days 3-4)
+
+**Status:** Pending
+**Goal:** Multi-model AI logo generation
+
+### Models to Integrate
+
+1. **Qwen-VL** — Arabic text support
+2. **DALL-E 3** — Photorealistic
+3. **Stable Diffusion** — Artistic
+4. **Flux Pro** — Creative
+
+### Tasks
+
+- [ ] Model selection UI
+- [ ] Prompt enhancement
+- [ ] Image generation API
+- [ ] Logo selection flow
+- [ ] Edit/refine options
+
+---
+
+## Phase 4: 3D Mockups (Days 4-5)
+
+**Status:** Pending
+**Goal:** Real-time 3D packaging viewer
+
+### Dependencies
+
+- Three.js (needs React 19 support)
+- @react-three/fiber
+- @react-three/drei
+
+### Tasks
+
 - [ ] Three.js setup
-- [ ] Packaging 3D models (cup, box, bag, label)
-- [ ] Real-time preview with logo
+- [ ] Packaging models (cup, box, bag, label)
+- [ ] Logo texture mapping
 - [ ] Camera controls
+- [ ] Screenshot capture
 
-### Phase 5: Export (Days 5-6)
-- [ ] PDF generation (print-ready, CMYK, 300 DPI)
+---
+
+## Phase 5: Export (Days 5-6)
+
+**Status:** Pending
+**Goal:** Print-ready file generation
+
+### Formats
+
+- **PDF** — Print-ready (CMYK, 300 DPI)
+- **SVG** — Vector graphics
+- **PNG** — Web use
+- **ZIP** — All assets bundled
+
+### Tasks
+
+- [ ] PDF generation
 - [ ] SVG export
 - [ ] ZIP bundling
 - [ ] Bleed and crop marks
+- [ ] Color profiles
 
-### Phase 6: Polish (Days 6-7)
-- [ ] UI refinements
+---
+
+## Phase 6: Polish (Days 6-7)
+
+**Status:** Pending
+**Goal:** Production-ready MVP
+
+### Tasks
+
 - [ ] Mobile responsiveness
 - [ ] Loading states
 - [ ] Error handling
+- [ ] Accessibility
+- [ ] Performance optimization
 - [ ] Testing
+- [ ] Documentation
 
 ---
 
-## To Run
+## Notes
 
-```bash
-cd /Users/x/.openclaw/workspace/basma
-npm run dev
-```
+### SQLite Migration
 
-Then open http://localhost:3000
+JSON storage is fine for MVP. When ready:
+1. Install `better-sqlite3` (wait for Node 25 support)
+2. Add `drizzle-orm`
+3. Run migrations
+4. Update API routes
 
----
+### React 19 + Three.js
 
-## Key Decisions
-
-1. **No auth** - faster MVP
-2. **No payments** - focus on product first
-3. **SQLite** - simple, fast, local
-4. **RTL by default** - Arabic-first
-5. **بصمة (Basma)** - "imprint" in Arabic
-6. **3 colors** - clean, minimal, premium feel
-7. **Edit anywhere** - non-linear flow
+@react-three/fiber doesn't support React 19 yet. Options:
+1. Wait for official support
+2. Use `--legacy-peer-deps` (risky)
+3. Alternative 3D library
+4. Server-side rendering only
 
 ---
 
-## Tech Stack
-
-- Next.js 14 (App Router)
-- SQLite + Drizzle ORM
-- Three.js (3D)
-- Qwen, DALL-E, SD, Flux (AI)
-- Tailwind CSS
-
----
-
-**Status:** Phase 1 ✅ | Ready for Phase 2
+**Last Updated:** 2026-03-21
+**Next Milestone:** Phase 2 — AI Vision
