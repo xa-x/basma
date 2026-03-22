@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Input, Textarea, Card } from "@/components/ui";
+import { Upload, Loader2, Sparkles, ArrowLeft, ArrowRight } from "lucide-react";
 
 const SECTORS = [
   { id: "food", label: "طعام ومشروبات", icon: "🍽️" },
@@ -14,11 +16,21 @@ const SECTORS = [
   { id: "other", label: "أخرى", icon: "✨" },
 ];
 
+interface Question {
+  id: string;
+  question: string;
+  questionAr?: string;
+  type: "text" | "select" | "multiselect";
+  options?: string[];
+  priority: "high" | "medium" | "low";
+}
+
 export default function CreatePage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  
+  const [analyzing, setAnalyzing] = useState(false);
+
   // Form data
   const [sector, setSector] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -26,11 +38,15 @@ export default function CreatePage() {
   const [description, setDescription] = useState("");
   const [images, setImages] = useState<string[]>([]);
 
+  // AI-generated data
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [analysis, setAnalysis] = useState<any>(null);
+
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    
-    // Convert to base64 for preview (in production, upload to storage)
+
     Array.from(files).forEach((file) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -46,9 +62,42 @@ export default function CreatePage() {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleAnalyze = async () => {
+    if (images.length === 0) {
+      // Skip analysis if no images
+      handleCreate();
+      return;
+    }
+
+    setAnalyzing(true);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessName: nameAr || name,
+          sector,
+          description,
+          images,
+        }),
+      });
+
+      const data = await res.json();
+      setAnalysis(data.analysis);
+      setQuestions(data.questions);
+      setStep(4); // Go to questions step
+    } catch (error) {
+      console.error("Analysis failed:", error);
+      // Continue without analysis
+      handleCreate();
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   const handleCreate = async () => {
     setLoading(true);
-    
+
     try {
       const res = await fetch("/api/projects", {
         method: "POST",
@@ -59,9 +108,11 @@ export default function CreatePage() {
           sector,
           description,
           referenceImages: images,
+          extractedColors: analysis?.colors || null,
+          brandVibe: analysis?.vibe || null,
         }),
       });
-      
+
       const project = await res.json();
       router.push(`/project/${project.id}`);
     } catch (error) {
@@ -72,32 +123,36 @@ export default function CreatePage() {
 
   const canProceed = () => {
     switch (step) {
-      case 0: return sector !== null;
-      case 1: return name.trim().length > 0;
-      case 2: return description.trim().length > 0;
-      default: return true;
+      case 0:
+        return sector !== null;
+      case 1:
+        return nameAr.trim().length > 0 || name.trim().length > 0;
+      case 2:
+        return description.trim().length >= 20;
+      default:
+        return true;
     }
   };
 
   return (
     <main className="min-h-screen bg-white">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-white border-b border-gray-100 z-50">
+      <header className="fixed top-0 left-0 right-0 bg-white border-b border-border z-50">
         <div className="container-narrow py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#0A0A0A] rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">ب</span>
             </div>
             <span className="text-xl font-semibold">بصمة</span>
           </div>
-          
+
           {/* Progress */}
           <div className="flex items-center gap-2">
-            {[0, 1, 2, 3].map((i) => (
+            {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
                 className={`w-8 h-1 rounded-full transition-colors ${
-                  i <= step ? "bg-[#0A0A0A]" : "bg-gray-200"
+                  i <= step ? "bg-primary" : "bg-border"
                 }`}
               />
             ))}
@@ -108,16 +163,11 @@ export default function CreatePage() {
       {/* Content */}
       <div className="pt-24 pb-12">
         <div className="container-narrow">
-          
           {/* Step 0: Sector */}
           {step === 0 && (
             <div className="animate-fadeIn">
-              <h1 className="text-4xl font-bold mb-4">
-                ما نوع نشاطك؟
-              </h1>
-              <p className="text-gray-600 mb-8">
-                اختر القطاع الأقرب لنشاطك التجاري
-              </p>
+              <h1 className="text-4xl font-bold mb-4">ما نوع نشاطك؟</h1>
+              <p className="text-gray-600 mb-8">اختر القطاع الأقرب لنشاطك التجاري</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {SECTORS.map((s) => (
                   <button
@@ -126,10 +176,8 @@ export default function CreatePage() {
                       setSector(s.id);
                       setStep(1);
                     }}
-                    className={`p-6 rounded-2xl border-2 text-center transition-all hover:border-[#D4A574] ${
-                      sector === s.id
-                        ? "border-[#0A0A0A] bg-gray-50"
-                        : "border-gray-100"
+                    className={`p-6 rounded-2xl border-2 text-center transition-all hover:border-accent ${
+                      sector === s.id ? "border-primary bg-gray-50" : "border-border"
                     }`}
                   >
                     <div className="text-4xl mb-3">{s.icon}</div>
@@ -143,52 +191,39 @@ export default function CreatePage() {
           {/* Step 1: Name */}
           {step === 1 && (
             <div className="animate-fadeIn">
-              <button
-                onClick={() => setStep(0)}
-                className="text-gray-500 hover:text-black mb-6 flex items-center gap-2"
-              >
-                ← رجوع
+              <button onClick={() => setStep(0)} className="text-gray-500 hover:text-black mb-6 flex items-center gap-2">
+                <ArrowRight className="w-4 h-4" /> رجوع
               </button>
-              <h1 className="text-4xl font-bold mb-4">
-                ما اسم علامتك التجارية؟
-              </h1>
-              <p className="text-gray-600 mb-8">
-                يمكنك إضافة الاسم بالعربي والإنجليزي
-              </p>
+              <h1 className="text-4xl font-bold mb-4">ما اسم علامتك التجارية؟</h1>
+              <p className="text-gray-600 mb-8">يمكنك إضافة الاسم بالعربي والإنجليزي</p>
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    الاسم بالعربي
-                  </label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-gray-700 mb-2">الاسم بالعربي</label>
+                  <Input
                     value={nameAr}
                     onChange={(e) => setNameAr(e.target.value)}
                     placeholder="مثال: مقهى النخيل"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg focus:outline-none focus:border-[#0A0A0A] transition"
+                    className="text-lg"
                     dir="rtl"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    الاسم بالإنجليزي (اختياري)
-                  </label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-gray-700 mb-2">الاسم بالإنجليزي (اختياري)</label>
+                  <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g., Palm Coffee"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg focus:outline-none focus:border-[#0A0A0A] transition"
+                    className="text-lg"
                     dir="ltr"
                   />
                 </div>
-                <button
+                <Button
                   onClick={() => setStep(2)}
                   disabled={!nameAr.trim() && !name.trim()}
-                  className="btn-primary w-full py-4 text-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full py-4 text-lg"
                 >
-                  التالي →
-                </button>
+                  التالي <ArrowLeft className="w-4 h-4 mr-2" />
+                </Button>
               </div>
             </div>
           )}
@@ -196,38 +231,32 @@ export default function CreatePage() {
           {/* Step 2: Description */}
           {step === 2 && (
             <div className="animate-fadeIn">
-              <button
-                onClick={() => setStep(1)}
-                className="text-gray-500 hover:text-black mb-6 flex items-center gap-2"
-              >
-                ← رجوع
+              <button onClick={() => setStep(1)} className="text-gray-500 hover:text-black mb-6 flex items-center gap-2">
+                <ArrowRight className="w-4 h-4" /> رجوع
               </button>
-              <h1 className="text-4xl font-bold mb-4">
-                أخبرنا المزيد عن نشاطك
-              </h1>
-              <p className="text-gray-600 mb-8">
-                كلما زادت التفاصيل، كانت النتائج أفضل
-              </p>
+              <h1 className="text-4xl font-bold mb-4">أخبرنا المزيد عن نشاطك</h1>
+              <p className="text-gray-600 mb-8">كلما زادت التفاصيل، كانت النتائج أفضل</p>
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    وصف النشاط
-                  </label>
-                  <textarea
+                  <label className="block text-sm font-medium text-gray-700 mb-2">وصف النشاط</label>
+                  <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="مثال: مقهى سعودي يقدم القهوة العربية بطريقة عصرية مع حلويات تقليدية..."
-                    rows={4}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg focus:outline-none focus:border-[#0A0A0A] transition resize-none"
+                    placeholder="مثال: مقهى سعودي يقدم القهوة العربية بطريقة عصرية مع حلويات تقليدية. نستهدف الشباب السعودي الذين يبحثون عن تجربة قهوة فريدة..."
+                    rows={5}
+                    className="text-lg"
                   />
+                  <p className="text-sm text-gray-500 mt-2">
+                    {description.length}/500 حرف (الحد الأدنى 20)
+                  </p>
                 </div>
-                <button
+                <Button
                   onClick={() => setStep(3)}
-                  disabled={!description.trim()}
-                  className="btn-primary w-full py-4 text-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={description.trim().length < 20}
+                  className="w-full py-4 text-lg"
                 >
-                  التالي →
-                </button>
+                  التالي <ArrowLeft className="w-4 h-4 mr-2" />
+                </Button>
               </div>
             </div>
           )}
@@ -235,23 +264,18 @@ export default function CreatePage() {
           {/* Step 3: Images */}
           {step === 3 && (
             <div className="animate-fadeIn">
-              <button
-                onClick={() => setStep(2)}
-                className="text-gray-500 hover:text-black mb-6 flex items-center gap-2"
-              >
-                ← رجوع
+              <button onClick={() => setStep(2)} className="text-gray-500 hover:text-black mb-6 flex items-center gap-2">
+                <ArrowRight className="w-4 h-4" /> رجوع
               </button>
-              <h1 className="text-4xl font-bold mb-4">
-                أضف صور للإلهام (اختياري)
-              </h1>
+              <h1 className="text-4xl font-bold mb-4">أضف صور للإلهام</h1>
               <p className="text-gray-600 mb-8">
                 صورة واجهة المحل، منتجات تحبها، أو أي شيء يعبر عن علامتك
               </p>
-              
+
               <div className="space-y-6">
                 {/* Upload area */}
-                <label className="block border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center cursor-pointer hover:border-[#D4A574] transition">
-                  <div className="text-4xl mb-4">📷</div>
+                <label className="block border-2 border-dashed border-border rounded-2xl p-12 text-center cursor-pointer hover:border-accent transition">
+                  <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                   <p className="text-gray-600 mb-2">اسحب الصور هنا أو اضغط للاختيار</p>
                   <p className="text-gray-400 text-sm">PNG, JPG حتى 10MB</p>
                   <input
@@ -262,7 +286,7 @@ export default function CreatePage() {
                     className="hidden"
                   />
                 </label>
-                
+
                 {/* Uploaded images */}
                 {images.length > 0 && (
                   <div className="grid grid-cols-3 gap-4">
@@ -283,24 +307,116 @@ export default function CreatePage() {
                     ))}
                   </div>
                 )}
-                
+
                 <div className="flex gap-4">
-                  <button
-                    onClick={handleCreate}
-                    disabled={loading}
-                    className="btn-primary flex-1 py-4 text-lg"
+                  <Button
+                    onClick={handleAnalyze}
+                    disabled={loading || analyzing}
+                    className="flex-1 py-4 text-lg"
                   >
-                    {loading ? "جاري الإنشاء..." : "إنشاء المشروع ✨"}
-                  </button>
+                    {analyzing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                        يحلل بالذكاء الاصطناعي...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5 ml-2" />
+                        تحليل وإنشاء المشروع
+                      </>
+                    )}
+                  </Button>
                   {images.length === 0 && (
-                    <button
-                      onClick={handleCreate}
-                      className="btn-secondary py-4 px-8"
-                    >
+                    <Button onClick={handleCreate} variant="secondary" className="py-4 px-8">
                       تخطي
-                    </button>
+                    </Button>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: AI Questions */}
+          {step === 4 && questions.length > 0 && (
+            <div className="animate-fadeIn">
+              <button onClick={() => setStep(3)} className="text-gray-500 hover:text-black mb-6 flex items-center gap-2">
+                <ArrowRight className="w-4 h-4" /> رجوع
+              </button>
+              <h1 className="text-4xl font-bold mb-2">أسئلة تفصيلية</h1>
+              <p className="text-gray-600 mb-8">
+                ساعدنا نفهم علامتك أكثر للحصول على نتائج أفضل
+              </p>
+
+              {/* Analysis preview */}
+              {analysis && (
+                <Card className="mb-8 bg-accent/5 border-accent/20">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-accent mt-1" />
+                    <div>
+                      <h3 className="font-semibold mb-2">تحليل الذكاء الاصطناعي</h3>
+                      <p className="text-gray-600 text-sm">{analysis.vibe}</p>
+                      {analysis.colors && (
+                        <div className="flex gap-2 mt-3">
+                          {Object.values(analysis.colors as Record<string, string>).map((color, i) => (
+                            <div
+                              key={i}
+                              className="w-8 h-8 rounded-lg border border-border"
+                              style={{ backgroundColor: color }}
+                              title={color}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Questions */}
+              <div className="space-y-6">
+                {questions.map((q) => (
+                  <div key={q.id}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {q.questionAr || q.question}
+                    </label>
+                    {q.type === "text" && (
+                      <Textarea
+                        value={answers[q.id] || ""}
+                        onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
+                        placeholder="اكتب إجابتك..."
+                        rows={3}
+                      />
+                    )}
+                    {q.type === "select" && q.options && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {q.options.map((opt, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setAnswers({ ...answers, [q.id]: opt })}
+                            className={`p-3 rounded-xl border text-sm transition ${
+                              answers[q.id] === opt
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-gray-300"
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                <Button onClick={handleCreate} disabled={loading} className="w-full py-4 text-lg">
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                      جاري الإنشاء...
+                    </>
+                  ) : (
+                    "إنشاء المشروع ✨"
+                  )}
+                </Button>
               </div>
             </div>
           )}
@@ -312,8 +428,14 @@ export default function CreatePage() {
           animation: fadeIn 0.3s ease-out;
         }
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
       `}</style>
     </main>
