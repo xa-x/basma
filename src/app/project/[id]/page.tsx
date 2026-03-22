@@ -492,7 +492,13 @@ export default function ProjectPage() {
               </div>
             </Card>
 
-            <Button className="w-full py-4 text-lg">
+            <Button 
+              className="w-full py-4 text-lg"
+              onClick={async () => {
+                // TODO: Implement actual export
+                alert("Export feature coming soon!");
+              }}
+            >
               <Download className="w-5 h-5 ml-2" />
               تحميل الكل (ZIP)
             </Button>
