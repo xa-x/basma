@@ -138,7 +138,7 @@ export default function ProjectPage() {
   return (
     <main className="min-h-screen bg-secondary/30">
       {/* Sidebar */}
-      <aside className="fixed right-0 top-0 bottom-0 w-72 bg-white border-l border-border overflow-y-auto">
+      <aside className="fixed right-0 top-0 bottom-0 w-72 bg-white border-l border-border overflow-y-auto z-40 md:z-auto sidebar-mobile md:translate-x-0">
         <div className="p-6">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 mb-8">
@@ -188,8 +188,20 @@ export default function ProjectPage() {
         </div>
       </aside>
 
+      {/* Mobile menu button */}
+      <button
+        onClick={() => {
+          const sidebar = document.querySelector("aside");
+          sidebar?.classList.toggle("open");
+        }}
+        className="fixed top-4 right-4 z-50 md:hidden w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center"
+        aria-label="فتح القائمة"
+      >
+        <span className="text-2xl">☰</span>
+      </button>
+
       {/* Main content */}
-      <div className="mr-72 p-8">
+      <div className="mr-0 md:mr-72 p-4 md:p-8">
         {/* Overview */}
         {activeStep === "overview" && (
           <div className="max-w-2xl animate-fadeIn">

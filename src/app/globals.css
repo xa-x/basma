@@ -7,6 +7,9 @@
   --color-accent: #D4A574;
   --color-muted: #888888;
   --color-border: #E5E5E5;
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
   
   /* Fonts */
   --font-sans: var(--font-inter), var(--font-arabic), system-ui, sans-serif;
@@ -188,8 +191,48 @@ h1, h2, h3, h4 {
   }
 }
 
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.2s ease-out;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
 /* Scrollbar */
@@ -209,4 +252,40 @@ h1, h2, h3, h4 {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #666;
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Mobile responsive sidebar */
+@media (max-width: 768px) {
+  .sidebar-mobile {
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar-mobile.open {
+    transform: translateX(0);
+  }
 }
