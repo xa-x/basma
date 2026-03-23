@@ -32,6 +32,20 @@ export const AI_MODELS = {
     description: "Arabic text expert",
     supports: ["english", "arabic"],
   },
+  "pixazo-flux": {
+    id: "pixazo-flux",
+    name: "Flux 1 Schnell",
+    provider: "Pixazo",
+    description: "Fast, high-quality (Free)",
+    supports: ["english"],
+  },
+  "pixazo-sdxl": {
+    id: "pixazo-sdxl",
+    name: "SDXL",
+    provider: "Pixazo",
+    description: "Detailed, artistic (Free)",
+    supports: ["english"],
+  },
 } as const;
 
 export type ModelId = keyof typeof AI_MODELS;
@@ -43,6 +57,8 @@ function generateMockLogos(prompt: string, model: ModelId): string[] {
     sdxl: ["#EC4899", "#6366F1", "#14B8A6", "#F97316"],
     flux: ["#8B5CF6", "#EC4899", "#3B82F6", "#10B981"],
     qwen: ["#D4A574", "#0A0A0A", "#8B7355", "#F5F5F5"],
+    "pixazo-flux": ["#6366F1", "#8B5CF6", "#EC4899", "#14B8A6"],
+    "pixazo-sdxl": ["#F59E0B", "#EF4444", "#8B5CF6", "#3B82F6"],
   };
 
   const colors = modelColors[model];
@@ -103,7 +119,21 @@ export async function generateLogos(
   model: ModelId,
   count: number = 4
 ): Promise<string[]> {
-  // For MVP, use mock generation
+  // Use Pixazo for pixazo-* models
+  if (model === "pixazo-flux" || model === "pixazo-sdxl") {
+    const { generateMultipleWithPixazo } = await import("./pixazo");
+    const apiKey = process.env.PIXAZO_API_KEY;
+    
+    if (!apiKey) {
+      console.warn("PIXAZO_API_KEY not set, falling back to mock");
+      return generateMockLogos(prompt, model);
+    }
+
+    const pixazoModel = model === "pixazo-flux" ? "flux-1-schnell" : "getSDXLImage";
+    return generateMultipleWithPixazo(prompt, pixazoModel, apiKey, count);
+  }
+
+  // For other models, use mock generation
   // TODO: Replace with actual API calls when keys are available
   return generateMockLogos(prompt, model);
 }
