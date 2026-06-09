@@ -13,7 +13,8 @@ import {
   Download,
   RefreshCw,
 } from "lucide-react";
-import { AI_MODELS, type ModelId } from "@/lib/logo-gen";
+import { LOGO_STYLES, type LogoStyleId } from "@/lib/logo-gen";
+import { MockupSelector } from "@/components/mockup-selector";
 
 interface Project {
   id: string;
@@ -54,7 +55,7 @@ export default function ProjectPage() {
   const [loading, setLoading] = useState(false);
 
   // Logo generation state
-  const [selectedModel, setSelectedModel] = useState<ModelId>("dalle3");
+  const [selectedStyle, setSelectedStyle] = useState<LogoStyleId>("minimal");
   const [logoPrompt, setLogoPrompt] = useState("");
   const [generatedLogos, setGeneratedLogos] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -70,13 +71,18 @@ export default function ProjectPage() {
 
     // Set active step based on status
     if (data.status === "draft") setActiveStep("logo");
-    else if (data.status === "logo") setActiveStep("design");
-    else if (data.status === "design") setActiveStep("packaging");
+    else if (data.status === "logo") setActiveStep("mockups");
     else setActiveStep("download");
   };
 
+  const getColors = () => ({
+    primary: project?.extractedColors?.primary || "#D4A574",
+    secondary: project?.extractedColors?.secondary || "#0A0A0A",
+    accent: project?.extractedColors?.accent || "#8B7355",
+  });
+
   const handleGenerateLogo = async () => {
-    if (!logoPrompt.trim() || !project) return;
+    if (!project) return;
     setGenerating(true);
 
     try {
@@ -84,11 +90,10 @@ export default function ProjectPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: logoPrompt,
-          model: selectedModel,
           businessName: project.nameAr || project.name,
           sector: project.sector,
-          style: project.brandVibe,
+          style: selectedStyle,
+          colors: getColors(),
         }),
       });
 
@@ -110,13 +115,13 @@ export default function ProjectPage() {
       body: JSON.stringify({
         logoUrl,
         logoPrompt,
-        logoModel: selectedModel,
+        logoModel: selectedStyle,
         status: "logo",
       }),
     });
 
     fetchProject();
-    setActiveStep("design");
+    setActiveStep("mockups");
   };
 
   if (!project) {
@@ -130,8 +135,7 @@ export default function ProjectPage() {
   const steps = [
     { id: "overview", label: "نظرة عامة", icon: "📋" },
     { id: "logo", label: "الشعار", icon: "🎨" },
-    { id: "design", label: "التصميم", icon: "✨" },
-    { id: "packaging", label: "التعبئة", icon: "📦" },
+    { id: "mockups", label: "الموك ابس", icon: "📦" },
     { id: "download", label: "التحميل", icon: "⬇️" },
   ];
 
@@ -247,43 +251,44 @@ export default function ProjectPage() {
           <div className="max-w-3xl animate-fadeIn">
             <h1 className="text-3xl font-bold mb-2">إنشاء الشعار</h1>
             <p className="text-gray-600 mb-8">
-              اختر نموذج الذكاء الاصطناعي واكتب وصف الشعار المطلوب
+              اختر نمط الشعار واضغط توليد
             </p>
 
-            {/* Model selection */}
+            {/* Style selection — 2 options */}
             <Card className="mb-6">
-              <h3 className="font-medium mb-4">اختر النموذج</h3>
+              <h3 className="font-medium mb-4">اختر النمط</h3>
               <div className="grid grid-cols-2 gap-4">
-                {Object.entries(AI_MODELS).map(([id, model]) => (
+                {Object.entries(LOGO_STYLES).map(([id, style]) => (
                   <button
                     key={id}
-                    onClick={() => setSelectedModel(id as ModelId)}
-                    className={`p-4 rounded-xl border-2 text-right transition ${
-                      selectedModel === id
+                    onClick={() => setSelectedStyle(id as LogoStyleId)}
+                    className={`p-6 rounded-xl border-2 text-center transition ${
+                      selectedStyle === id
                         ? "border-primary bg-primary/5"
                         : "border-border hover:border-gray-300"
                     }`}
                   >
-                    <div className="font-medium">{model.name}</div>
-                    <div className="text-gray-500 text-sm">{model.description}</div>
+                    <div className="text-2xl font-bold mb-2">{style.nameEn === "Stylized" ? "🎨" : "◻️"}</div>
+                    <div className="font-semibold text-lg">{style.name}</div>
+                    <div className="text-gray-500 text-sm mt-1">{style.description}</div>
                   </button>
                 ))}
               </div>
             </Card>
 
-            {/* Prompt */}
+            {/* Optional prompt */}
             <Card className="mb-6">
-              <h3 className="font-medium mb-4">وصف الشعار</h3>
+              <h3 className="font-medium mb-4">ملاحظات إضافية (اختياري)</h3>
               <textarea
                 value={logoPrompt}
                 onChange={(e) => setLogoPrompt(e.target.value)}
-                placeholder="شعار عصري لمقهى سعودي، يستخدم ألوان الترابي والذهبي، مع رمز النخلة..."
+                placeholder="أضف تفاصيل إضافية عن الشعار..."
                 rows={3}
                 className="w-full px-4 py-3 border border-border rounded-xl focus:border-primary focus:outline-none transition resize-none"
               />
               <Button
                 onClick={handleGenerateLogo}
-                disabled={!logoPrompt.trim() || generating}
+                disabled={generating}
                 className="w-full mt-4 py-3"
               >
                 {generating ? (
@@ -340,18 +345,16 @@ export default function ProjectPage() {
           </div>
         )}
 
-        {/* Design */}
-        {activeStep === "design" && (
-          <div className="max-w-3xl animate-fadeIn">
-            <h1 className="text-3xl font-bold mb-2">الألوان والخطوط</h1>
-            <p className="text-gray-600 mb-8">
-              تم استخراج الألوان من شعارك. يمكنك تعديلها.
-            </p>
+        {/* Packaging Mockups */}
+        {activeStep === "mockups" && (
+          <div className="max-w-4xl animate-fadeIn">
+            <h1 className="text-3xl font-bold mb-2">موك ابس التعبئة والتغليف</h1>
+            <p className="text-gray-600 mb-8">شاهد علامتك على منتجات حقيقية</p>
 
             {/* Logo preview */}
             {project.logoUrl && (
               <Card className="mb-6 flex items-center gap-6">
-                <div className="w-24 h-24 bg-secondary rounded-xl flex items-center justify-center">
+                <div className="w-20 h-20 bg-secondary rounded-xl flex items-center justify-center">
                   <img
                     src={project.logoUrl}
                     alt="Logo"
@@ -367,99 +370,13 @@ export default function ProjectPage() {
               </Card>
             )}
 
-            {/* Color palette */}
-            <Card className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium">لوحة الألوان</h3>
-                <Button variant="ghost" size="sm">
-                  <Palette className="w-4 h-4 ml-2" />
-                  تخصيص
-                </Button>
-              </div>
-              <div className="flex gap-4">
-                {project.extractedColors ? (
-                  Object.entries(project.extractedColors).map(([name, color]) => (
-                    <div key={name} className="flex flex-col items-center">
-                      <div
-                        className="w-20 h-20 rounded-xl border border-border"
-                        style={{ backgroundColor: color as string }}
-                      />
-                      <span className="text-xs text-gray-500 mt-2">{color as string}</span>
-                    </div>
-                  ))
-                ) : (
-                  ["#D4A574", "#0A0A0A", "#F5F5F5", "#8B7355"].map((color, i) => (
-                    <div key={i} className="flex flex-col items-center">
-                      <div
-                        className="w-20 h-20 rounded-xl border border-border"
-                        style={{ backgroundColor: color }}
-                      />
-                      <span className="text-xs text-gray-500 mt-2">{color}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </Card>
-
-            {/* Typography */}
-            <Card>
-              <h3 className="font-medium mb-4">الخطوط</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <div className="text-sm text-gray-500 mb-2">العنوان</div>
-                  <div className="text-2xl font-bold">Noto Sans Arabic</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-2">النص</div>
-                  <div className="text-xl">IBM Plex Sans Arabic</div>
-                </div>
-              </div>
-            </Card>
-
-            <div className="mt-8 flex justify-end">
-              <Button onClick={() => setActiveStep("packaging")} size="lg">
-                التالي: التعبئة والتغليف
-                <ArrowRight className="w-4 h-4 mr-2" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Packaging */}
-        {activeStep === "packaging" && (
-          <div className="max-w-4xl animate-fadeIn">
-            <h1 className="text-3xl font-bold mb-2">التعبئة والتغليف</h1>
-            <p className="text-gray-600 mb-8">شاهد علامتك على منتجات حقيقية</p>
-
-            {/* 3D viewer placeholder */}
-            <Card className="mb-6">
-              <div className="aspect-video bg-gradient-to-br from-secondary to-gray-100 rounded-xl flex items-center justify-center">
-                <div className="text-center">
-                  <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <p className="text-gray-500">عارض 3D قادم قريباً</p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Packaging options */}
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { name: "كوب ورقي", icon: "☕" },
-                { name: "صندوق", icon: "📦" },
-                { name: "كيس ورقي", icon: "🛍️" },
-                { name: "ملصق", icon: "🏷️" },
-                { name: "قائمة طعام", icon: "📋" },
-                { name: "بطاقة عمل", icon: "💳" },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-2xl p-6 text-center cursor-pointer hover:shadow-md transition border border-border"
-                >
-                  <div className="text-4xl mb-3">{item.icon}</div>
-                  <div className="font-medium">{item.name}</div>
-                </div>
-              ))}
-            </div>
+            {/* Mockup selector component */}
+            <MockupSelector
+              brandName={project.nameAr || project.name}
+              colors={getColors()}
+              sector={project.sector}
+              logoUrl={project.logoUrl}
+            />
 
             <div className="mt-8 flex justify-end">
               <Button onClick={() => setActiveStep("download")} size="lg">
@@ -504,12 +421,9 @@ export default function ProjectPage() {
               </div>
             </Card>
 
-            <Button 
+            <Button
               className="w-full py-4 text-lg"
-              onClick={async () => {
-                // TODO: Implement actual export
-                alert("Export feature coming soon!");
-              }}
+              onClick={() => alert("Export feature coming soon!")}
             >
               <Download className="w-5 h-5 ml-2" />
               تحميل الكل (ZIP)

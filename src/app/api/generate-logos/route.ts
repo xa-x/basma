@@ -1,30 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateLogos, enhancePromptForModel, AI_MODELS, type ModelId } from "@/lib/logo-gen";
+import { generateLogos, enhancePrompt, LOGO_STYLES, type LogoStyleId } from "@/lib/logo-gen";
 
 // POST /api/generate-logos - Generate logo options
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { prompt, model, businessName, sector, style } = body;
+    const { businessName, sector, style, colors } = body;
 
-    const modelId = (model || "dalle3") as ModelId;
+    const styleId = (style || "minimal") as LogoStyleId;
+    const styleConfig = LOGO_STYLES[styleId];
 
-    // Enhance prompt for the selected model
-    const enhancedPrompt = await enhancePromptForModel(
-      prompt,
-      modelId,
+    const brandColors = colors || {
+      primary: "#D4A574",
+      secondary: "#0A0A0A",
+      accent: "#8B7355",
+    };
+
+    // Generate enhanced prompt (optional, for future use)
+    const enhancedPrompt = await enhancePrompt(
       businessName,
       sector,
-      style
+      styleId,
+      brandColors
     );
 
-    // Generate logos
-    const logos = await generateLogos(enhancedPrompt, modelId, 4);
+    // Generate styled SVG logos
+    const logos = await generateLogos(businessName, styleId, brandColors, 4);
 
     return NextResponse.json({
       logos,
       prompt: enhancedPrompt,
-      model: AI_MODELS[modelId],
+      style: styleConfig,
     });
   } catch (error) {
     console.error("Logo generation error:", error);

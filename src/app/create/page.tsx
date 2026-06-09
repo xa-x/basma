@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Input, Textarea, Card } from "@/components/ui";
-import { Upload, Loader2, Sparkles, ArrowLeft, ArrowRight } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, ArrowRight, Palette } from "lucide-react";
 
 const SECTORS = [
   { id: "food", label: "طعام ومشروبات", icon: "🍽️" },
@@ -16,84 +16,39 @@ const SECTORS = [
   { id: "other", label: "أخرى", icon: "✨" },
 ];
 
-interface Question {
-  id: string;
-  question: string;
-  questionAr?: string;
-  type: "text" | "select" | "multiselect";
-  options?: string[];
-  priority: "high" | "medium" | "low";
-}
+const VIBES = [
+  { id: "modern", label: "عصري", icon: "⚡" },
+  { id: "luxury", label: "فاخر", icon: "👑" },
+  { id: "traditional", label: "تراثي", icon: "🏛️" },
+  { id: "playful", label: "مرح", icon: "🎨" },
+  { id: "minimal", label: "بسيط", icon: "◻️" },
+  { id: "bold", label: "جريء", icon: "🔥" },
+];
+
+const COLOR_PRESETS = [
+  { name: "ذهبي تراثي", primary: "#D4A574", secondary: "#0A0A0A", accent: "#8B7355" },
+  { name: "أزرق عصري", primary: "#2563EB", secondary: "#1E293B", accent: "#60A5FA" },
+  { name: "أخضر طبيعي", primary: "#059669", secondary: "#1F2937", accent: "#34D399" },
+  { name: "وردي فاخر", primary: "#DB2777", secondary: "#1E1B2E", accent: "#F472B6" },
+  { name: "برتقالي حيوي", primary: "#EA580C", secondary: "#1C1917", accent: "#FB923C" },
+  { name: "بنفسجي ملكي", primary: "#7C3AED", secondary: "#0F172A", accent: "#A78BFA" },
+];
 
 export default function CreatePage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
 
-  // Form data
+  // Step 1: Sector + Name
   const [sector, setSector] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [nameAr, setNameAr] = useState("");
   const [description, setDescription] = useState("");
-  const [images, setImages] = useState<string[]>([]);
 
-  // AI-generated data
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [analysis, setAnalysis] = useState<any>(null);
-
-  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setImages((prev) => [...prev, e.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-  }, []);
-
-  const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleAnalyze = async () => {
-    if (images.length === 0) {
-      // Skip analysis if no images
-      handleCreate();
-      return;
-    }
-
-    setAnalyzing(true);
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          businessName: nameAr || name,
-          sector,
-          description,
-          images,
-        }),
-      });
-
-      const data = await res.json();
-      setAnalysis(data.analysis);
-      setQuestions(data.questions);
-      setStep(4); // Go to questions step
-    } catch (error) {
-      console.error("Analysis failed:", error);
-      // Continue without analysis
-      handleCreate();
-    } finally {
-      setAnalyzing(false);
-    }
-  };
+  // Step 2: Style preferences
+  const [vibe, setVibe] = useState<string | null>(null);
+  const [selectedColors, setSelectedColors] = useState(COLOR_PRESETS[0]);
+  const [keywords, setKeywords] = useState("");
 
   const handleCreate = async () => {
     setLoading(true);
@@ -107,9 +62,15 @@ export default function CreatePage() {
           nameAr: nameAr || null,
           sector,
           description,
-          referenceImages: images,
-          extractedColors: analysis?.colors || null,
-          brandVibe: analysis?.vibe || null,
+          referenceImages: [],
+          extractedColors: {
+            primary: selectedColors.primary,
+            secondary: selectedColors.secondary,
+            accent: selectedColors.accent,
+            neutral: "#888888",
+            background: "#F5F5F5",
+          },
+          brandVibe: vibe || null,
         }),
       });
 
@@ -124,11 +85,9 @@ export default function CreatePage() {
   const canProceed = () => {
     switch (step) {
       case 0:
-        return sector !== null;
+        return sector !== null && (nameAr.trim().length > 0 || name.trim().length > 0);
       case 1:
-        return nameAr.trim().length > 0 || name.trim().length > 0;
-      case 2:
-        return description.trim().length >= 20;
+        return true; // Style preferences are optional
       default:
         return true;
     }
@@ -146,12 +105,12 @@ export default function CreatePage() {
             <span className="text-xl font-semibold">بصمة</span>
           </div>
 
-          {/* Progress */}
+          {/* Progress — 3 steps */}
           <div className="flex items-center gap-2">
-            {[0, 1, 2, 3, 4].map((i) => (
+            {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className={`w-8 h-1 rounded-full transition-colors ${
+                className={`w-12 h-1 rounded-full transition-colors ${
                   i <= step ? "bg-primary" : "bg-border"
                 }`}
               />
@@ -163,40 +122,33 @@ export default function CreatePage() {
       {/* Content */}
       <div className="pt-24 pb-12">
         <div className="container-narrow">
-          {/* Step 0: Sector */}
+          {/* Step 0: Sector + Name */}
           {step === 0 && (
             <div className="animate-fadeIn">
-              <h1 className="text-4xl font-bold mb-4">ما نوع نشاطك؟</h1>
-              <p className="text-gray-600 mb-8">اختر القطاع الأقرب لنشاطك التجاري</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {SECTORS.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      setSector(s.id);
-                      setStep(1);
-                    }}
-                    className={`p-6 rounded-2xl border-2 text-center transition-all hover:border-accent ${
-                      sector === s.id ? "border-primary bg-gray-50" : "border-border"
-                    }`}
-                  >
-                    <div className="text-4xl mb-3">{s.icon}</div>
-                    <div className="font-medium">{s.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+              <h1 className="text-4xl font-bold mb-4">أنشئ علامتك التجارية</h1>
+              <p className="text-gray-600 mb-8">اختر القطاع واكتب اسم العلامة</p>
 
-          {/* Step 1: Name */}
-          {step === 1 && (
-            <div className="animate-fadeIn">
-              <button onClick={() => setStep(0)} className="text-gray-500 hover:text-black mb-6 flex items-center gap-2">
-                <ArrowRight className="w-4 h-4" /> رجوع
-              </button>
-              <h1 className="text-4xl font-bold mb-4">ما اسم علامتك التجارية؟</h1>
-              <p className="text-gray-600 mb-8">يمكنك إضافة الاسم بالعربي والإنجليزي</p>
-              <div className="space-y-6">
+              {/* Sector */}
+              <div className="mb-8">
+                <label className="block text-sm font-medium text-gray-700 mb-3">القطاع</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {SECTORS.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setSector(s.id)}
+                      className={`p-4 rounded-xl border-2 text-center transition-all hover:border-accent ${
+                        sector === s.id ? "border-primary bg-gray-50" : "border-border"
+                      }`}
+                    >
+                      <div className="text-3xl mb-2">{s.icon}</div>
+                      <div className="text-sm font-medium">{s.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Names */}
+              <div className="space-y-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">الاسم بالعربي</label>
                   <Input
@@ -217,207 +169,189 @@ export default function CreatePage() {
                     dir="ltr"
                   />
                 </div>
-                <Button
-                  onClick={() => setStep(2)}
-                  disabled={!nameAr.trim() && !name.trim()}
-                  className="w-full py-4 text-lg"
-                >
-                  التالي <ArrowLeft className="w-4 h-4 mr-2" />
-                </Button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">وصف مختصر</label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="مثال: مقهى سعودي يقدم القهوة العربية بطريقة عصرية..."
+                    rows={3}
+                  />
+                </div>
               </div>
+
+              <Button
+                onClick={() => setStep(1)}
+                disabled={!canProceed()}
+                className="w-full py-4 text-lg"
+              >
+                التالي <ArrowLeft className="w-4 h-4 mr-2" />
+              </Button>
             </div>
           )}
 
-          {/* Step 2: Description */}
+          {/* Step 1: Style preferences */}
+          {step === 1 && (
+            <div className="animate-fadeIn">
+              <button onClick={() => setStep(0)} className="text-gray-500 hover:text-black mb-6 flex items-center gap-2">
+                <ArrowRight className="w-4 h-4" /> رجوع
+              </button>
+              <h1 className="text-4xl font-bold mb-4">اختر أسلوب العلامة</h1>
+              <p className="text-gray-600 mb-8">حدد الشعور العام والألوان</p>
+
+              {/* Vibe */}
+              <div className="mb-8">
+                <label className="block text-sm font-medium text-gray-700 mb-3">الشعور العام</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {VIBES.map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => setVibe(v.id)}
+                      className={`p-4 rounded-xl border-2 text-center transition-all hover:border-accent ${
+                        vibe === v.id ? "border-primary bg-gray-50" : "border-border"
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{v.icon}</div>
+                      <div className="text-sm font-medium">{v.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Color preset */}
+              <div className="mb-8">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <Palette className="w-4 h-4 inline ml-1" />
+                  لوحة الألوان
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {COLOR_PRESETS.map((preset, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedColors(preset)}
+                      className={`p-4 rounded-xl border-2 text-center transition-all hover:border-accent ${
+                        selectedColors.primary === preset.primary
+                          ? "border-primary bg-gray-50"
+                          : "border-border"
+                      }`}
+                    >
+                      <div className="flex justify-center gap-1 mb-2">
+                        <div
+                          className="w-8 h-8 rounded-lg border border-border"
+                          style={{ backgroundColor: preset.primary }}
+                        />
+                        <div
+                          className="w-8 h-8 rounded-lg border border-border"
+                          style={{ backgroundColor: preset.secondary }}
+                        />
+                        <div
+                          className="w-8 h-8 rounded-lg border border-border"
+                          style={{ backgroundColor: preset.accent }}
+                        />
+                      </div>
+                      <div className="text-xs font-medium">{preset.name}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Keywords */}
+              <div className="mb-8">
+                <label className="block text-sm font-medium text-gray-700 mb-2">كلمات مفتاحية (اختياري)</label>
+                <Input
+                  value={keywords}
+                  onChange={(e) => setKeywords(e.target.value)}
+                  placeholder="مثال: نخلة، قهوة، سعودي، تراث"
+                  dir="rtl"
+                />
+              </div>
+
+              <Button
+                onClick={() => setStep(2)}
+                className="w-full py-4 text-lg"
+              >
+                التالي <ArrowLeft className="w-4 h-4 mr-2" />
+              </Button>
+            </div>
+          )}
+
+          {/* Step 2: Confirm + Create */}
           {step === 2 && (
             <div className="animate-fadeIn">
               <button onClick={() => setStep(1)} className="text-gray-500 hover:text-black mb-6 flex items-center gap-2">
                 <ArrowRight className="w-4 h-4" /> رجوع
               </button>
-              <h1 className="text-4xl font-bold mb-4">أخبرنا المزيد عن نشاطك</h1>
-              <p className="text-gray-600 mb-8">كلما زادت التفاصيل، كانت النتائج أفضل</p>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">وصف النشاط</label>
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="مثال: مقهى سعودي يقدم القهوة العربية بطريقة عصرية مع حلويات تقليدية. نستهدف الشباب السعودي الذين يبحثون عن تجربة قهوة فريدة..."
-                    rows={5}
-                    className="text-lg"
-                  />
-                  <p className="text-sm text-gray-500 mt-2">
-                    {description.length}/500 حرف (الحد الأدنى 20)
-                  </p>
-                </div>
-                <Button
-                  onClick={() => setStep(3)}
-                  disabled={description.trim().length < 20}
-                  className="w-full py-4 text-lg"
-                >
-                  التالي <ArrowLeft className="w-4 h-4 mr-2" />
-                </Button>
-              </div>
-            </div>
-          )}
+              <h1 className="text-4xl font-bold mb-4">جاهز للإنشاء! ✨</h1>
+              <p className="text-gray-600 mb-8">راجع التفاصيل وأنشئ مشروعك</p>
 
-          {/* Step 3: Images */}
-          {step === 3 && (
-            <div className="animate-fadeIn">
-              <button onClick={() => setStep(2)} className="text-gray-500 hover:text-black mb-6 flex items-center gap-2">
-                <ArrowRight className="w-4 h-4" /> رجوع
-              </button>
-              <h1 className="text-4xl font-bold mb-4">أضف صور للإلهام</h1>
-              <p className="text-gray-600 mb-8">
-                صورة واجهة المحل، منتجات تحبها، أو أي شيء يعبر عن علامتك
-              </p>
-
-              <div className="space-y-6">
-                {/* Upload area */}
-                <label className="block border-2 border-dashed border-border rounded-2xl p-12 text-center cursor-pointer hover:border-accent transition">
-                  <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                  <p className="text-gray-600 mb-2">اسحب الصور هنا أو اضغط للاختيار</p>
-                  <p className="text-gray-400 text-sm">PNG, JPG حتى 10MB</p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </label>
-
-                {/* Uploaded images */}
-                {images.length > 0 && (
-                  <div className="grid grid-cols-3 gap-4">
-                    {images.map((img, i) => (
-                      <div key={i} className="relative group">
-                        <img
-                          src={img}
-                          alt={`Upload ${i + 1}`}
-                          className="aspect-square object-cover rounded-xl"
-                        />
-                        <button
-                          onClick={() => removeImage(i)}
-                          className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex gap-4">
-                  <Button
-                    onClick={handleAnalyze}
-                    disabled={loading || analyzing}
-                    className="flex-1 py-4 text-lg"
-                  >
-                    {analyzing ? (
-                      <>
-                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                        يحلل بالذكاء الاصطناعي...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-5 h-5 ml-2" />
-                        تحليل وإنشاء المشروع
-                      </>
-                    )}
-                  </Button>
-                  {images.length === 0 && (
-                    <Button onClick={handleCreate} variant="secondary" className="py-4 px-8">
-                      تخطي
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: AI Questions */}
-          {step === 4 && questions.length > 0 && (
-            <div className="animate-fadeIn">
-              <button onClick={() => setStep(3)} className="text-gray-500 hover:text-black mb-6 flex items-center gap-2">
-                <ArrowRight className="w-4 h-4" /> رجوع
-              </button>
-              <h1 className="text-4xl font-bold mb-2">أسئلة تفصيلية</h1>
-              <p className="text-gray-600 mb-8">
-                ساعدنا نفهم علامتك أكثر للحصول على نتائج أفضل
-              </p>
-
-              {/* Analysis preview */}
-              {analysis && (
-                <Card className="mb-8 bg-accent/5 border-accent/20">
-                  <div className="flex items-start gap-3">
-                    <Sparkles className="w-5 h-5 text-accent mt-1" />
-                    <div>
-                      <h3 className="font-semibold mb-2">تحليل الذكاء الاصطناعي</h3>
-                      <p className="text-gray-600 text-sm">{analysis.vibe}</p>
-                      {analysis.colors && (
-                        <div className="flex gap-2 mt-3">
-                          {Object.values(analysis.colors as Record<string, string>).map((color, i) => (
-                            <div
-                              key={i}
-                              className="w-8 h-8 rounded-lg border border-border"
-                              style={{ backgroundColor: color }}
-                              title={color}
-                            />
-                          ))}
-                        </div>
-                      )}
+              <Card className="mb-6 p-6">
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-sm text-gray-500">الاسم</span>
+                    <div className="text-xl font-semibold">
+                      {nameAr || name}
+                      {nameAr && name && <span className="text-gray-400 text-base mr-2">({name})</span>}
                     </div>
                   </div>
-                </Card>
-              )}
-
-              {/* Questions */}
-              <div className="space-y-6">
-                {questions.map((q) => (
-                  <div key={q.id}>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {q.questionAr || q.question}
-                    </label>
-                    {q.type === "text" && (
-                      <Textarea
-                        value={answers[q.id] || ""}
-                        onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
-                        placeholder="اكتب إجابتك..."
-                        rows={3}
-                      />
-                    )}
-                    {q.type === "select" && q.options && (
-                      <div className="grid grid-cols-2 gap-3">
-                        {q.options.map((opt, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setAnswers({ ...answers, [q.id]: opt })}
-                            className={`p-3 rounded-xl border text-sm transition ${
-                              answers[q.id] === opt
-                                ? "border-primary bg-primary/5"
-                                : "border-border hover:border-gray-300"
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  <div>
+                    <span className="text-sm text-gray-500">القطاع</span>
+                    <div className="text-lg">
+                      {SECTORS.find((s) => s.id === sector)?.icon}{" "}
+                      {SECTORS.find((s) => s.id === sector)?.label}
+                    </div>
                   </div>
-                ))}
-
-                <Button onClick={handleCreate} disabled={loading} className="w-full py-4 text-lg">
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                      جاري الإنشاء...
-                    </>
-                  ) : (
-                    "إنشاء المشروع ✨"
+                  {description && (
+                    <div>
+                      <span className="text-sm text-gray-500">الوصف</span>
+                      <div className="text-gray-700">{description}</div>
+                    </div>
                   )}
-                </Button>
-              </div>
+                  {vibe && (
+                    <div>
+                      <span className="text-sm text-gray-500">الشعور</span>
+                      <div className="text-lg">
+                        {VIBES.find((v) => v.id === vibe)?.icon}{" "}
+                        {VIBES.find((v) => v.id === vibe)?.label}
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-sm text-gray-500">الألوان</span>
+                    <div className="flex gap-2 mt-1">
+                      <div
+                        className="w-10 h-10 rounded-lg border border-border"
+                        style={{ backgroundColor: selectedColors.primary }}
+                      />
+                      <div
+                        className="w-10 h-10 rounded-lg border border-border"
+                        style={{ backgroundColor: selectedColors.secondary }}
+                      />
+                      <div
+                        className="w-10 h-10 rounded-lg border border-border"
+                        style={{ backgroundColor: selectedColors.accent }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Button
+                onClick={handleCreate}
+                disabled={loading}
+                className="w-full py-4 text-lg"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                    جاري الإنشاء...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 ml-2" />
+                    أنشئ المشروع
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </div>
